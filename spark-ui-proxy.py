@@ -108,6 +108,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         page = page.replace('"/api/v1/', '"' + target + 'api/v1/')
         page = page.replace('"/static/executorspage-template.html', '"' + target + 'static/executorspage-template.html')
         page = page.replace('{{uiroot}}/history', '{{uiroot}}' + target + 'history')
+        page = page.replace('"/static/historypage-template.html', '"' + target + 'static/historypage-template.html')
         return page
 
 
