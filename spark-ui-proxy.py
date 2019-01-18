@@ -100,11 +100,13 @@ class ProxyHandler(BaseHTTPRequestHandler):
         page = page.replace('href="/', 'href="' + target)
         page = page.replace("'<div><a href=' + logUrl + '>'",
                             "'<div><a href=' + location.origin + logUrl.replace('http://', '/proxy:') + '>'")
+        page = page.replace('href="app', 'href="' + target + 'app')
         page = page.replace('href="log', 'href="' + target + 'log')
         page = page.replace('href="http://', 'href="' + URL_PREFIX + 'proxy:')
         page = page.replace('src="/', 'src="' + target)
         page = page.replace('action="', 'action="' + target)
         page = page.replace('"/api/v1/', '"' + target + 'api/v1/')
+        page = page.replace('"/static/executorspage-template.html', '"' + target + 'static/executorspage-template.html')
         page = page.replace('{{uiroot}}/history', '{{uiroot}}' + target + 'history')
         return page
 
