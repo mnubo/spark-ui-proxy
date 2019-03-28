@@ -32,10 +32,11 @@ BIND_ADDR = os.environ.get("BIND_ADDR", "0.0.0.0")
 SERVER_PORT = int(os.environ.get("SERVER_PORT", "80"))
 URL_PREFIX = os.environ.get("URL_PREFIX", "").rstrip('/') + '/'
 SPARK_MASTER_HOST = ""
-
+PROXY_PATTERN = "proxy/"
 
 class ProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
+
         # Add an health checking endpoint.
         if self.path in ("/healthz"):
             self.send_response(code=200)
@@ -46,13 +47,16 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
         # redirect if we are hitting the home page
         if self.path in ("", URL_PREFIX):
+            location = URL_PREFIX + PROXY_PATTERN + SPARK_MASTER_HOST
+
             self.send_response(302)
-            self.send_header("Location", URL_PREFIX + "proxy:" + SPARK_MASTER_HOST)
+            self.send_header("Location", location)
             self.end_headers()
             return
         self.proxyRequest(None)
 
     def do_POST(self):
+
         length = int(self.headers.getheader('content-length'))
         postData = self.rfile.read(length)
         self.proxyRequest(postData)
@@ -61,7 +65,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
         targetHost, path = self.extractUrlDetails(self.path)
         targetUrl = "http://" + targetHost + path
 
-        print("get: %s  host: %s  path: %s  target: %s" % (self.path, targetHost, path, targetUrl))
+        print("proxyRequest: %s  host: %s  path: %s  target: %s" % (self.path, targetHost, path, targetUrl))
 
         try:
             proxiedRequest = urllib2.urlopen(targetUrl, data)
@@ -79,30 +83,31 @@ class ProxyHandler(BaseHTTPRequestHandler):
             self.wfile.write(page)
         elif resCode == 302:
             self.send_response(302)
-            self.send_header("Location", URL_PREFIX + "proxy:" + SPARK_MASTER_HOST)
+            self.send_header("Location", URL_PREFIX + PROXY_PATTERN + SPARK_MASTER_HOST)
             self.end_headers()
         else:
             raise Exception("Unsupported response: " + resCode)
 
     def extractUrlDetails(self, path):
-        if path.startswith(URL_PREFIX + "proxy:"):
-            start_idx = len(URL_PREFIX) + 6  # len('proxy:') == 6
+        if path.startswith(URL_PREFIX + PROXY_PATTERN):
+            start_idx = len(URL_PREFIX) + 6  # len(PROXY_PATTERN) == 6
             idx = path.find("/", start_idx)
             targetHost = path[start_idx:] if idx == -1 else path[start_idx:idx]
             path = "" if idx == -1 else path[idx:]
         else:
             targetHost = SPARK_MASTER_HOST
             path = path
+
         return (targetHost, path)
 
     def rewriteLinks(self, page, targetHost):
-        target = "{0}proxy:{1}/".format(URL_PREFIX, targetHost)
+        target = "{0}{1}{2}/".format(URL_PREFIX, PROXY_PATTERN, targetHost)
         page = page.replace('href="/', 'href="' + target)
         page = page.replace("'<div><a href=' + logUrl + '>'",
-                            "'<div><a href=' + location.origin + logUrl.replace('http://', '/proxy:') + '>'")
+                            "'<div><a href=' + location.origin + logUrl.replace('http://', '/{0}') + '>'".format(PROXY_PATTERN))
         page = page.replace('href="app', 'href="' + target + 'app')
         page = page.replace('href="log', 'href="' + target + 'log')
-        page = page.replace('href="http://', 'href="' + URL_PREFIX + 'proxy:')
+        page = page.replace('href="http://', 'href="' + URL_PREFIX + PROXY_PATTERN)
         page = page.replace('src="/', 'src="' + target)
         page = page.replace('action="', 'action="' + target)
         page = page.replace('"/api/v1/', '"' + target + 'api/v1/')
