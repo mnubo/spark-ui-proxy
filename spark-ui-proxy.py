@@ -32,7 +32,7 @@ BIND_ADDR = os.environ.get("BIND_ADDR", "0.0.0.0")
 SERVER_PORT = int(os.environ.get("SERVER_PORT", "80"))
 URL_PREFIX = os.environ.get("URL_PREFIX", "").rstrip('/') + '/'
 SPARK_MASTER_HOST = ""
-PROXY_PATTERN = "proxy/"
+PROXY_PATTERN = "proxy:"
 
 class ProxyHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -111,6 +111,8 @@ class ProxyHandler(BaseHTTPRequestHandler):
         page = page.replace('src="/', 'src="' + target)
         page = page.replace('action="', 'action="' + target)
         page = page.replace('"/api/v1/', '"' + target + 'api/v1/')
+        page = page.replace('return "/log"', 'return "'+ target + 'log"')
+        page = page.replace('indexOf("history")', 'indexOf("history-check-disabled-by-proxy")')
         page = page.replace('"/static/executorspage-template.html', '"' + target + 'static/executorspage-template.html')
         page = page.replace('{{uiroot}}/history', '{{uiroot}}' + target + 'history')
         page = page.replace('"/static/historypage-template.html', '"' + target + 'static/historypage-template.html')
